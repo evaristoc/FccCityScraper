@@ -1,2 +1,8 @@
 node_modules
 .gitignore
+FccCityScraper*
+*komodo*
+/node_modules
+*~
+script1.sh
+/nottogithub
