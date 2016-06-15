@@ -8,6 +8,14 @@ var express = require('express'),
     wljson = [];  //for the last updated json file of cities with coordinates
     gljson = [];  //coordinates from google maps
 
+
+app.get('/', function(req, res){
+  //http://stackoverflow.com/questions/10183291/how-to-get-the-full-url-in-express
+  var fullUrl = req.protocol + '://' + req.get('host') + req.originalUrl;
+  var text = "<h2><strong>First Draft Campsite Data API</strong></h2><p>To test other points do:<p><ul><li>"+fullUrl+"wikititles</li><li>"+fullUrl+"wikilists</li><li>"+fullUrl+"googlelists</li></ul>" 
+  res.send(text);
+})
+
     
 app.get('/wikititles', function(req, res){
 
