@@ -6,17 +6,21 @@ var express = require('express'),
     app     = express(),
     wtjson  = [], //for the titles in the wiki
     wljson = [];  //for the last updated json file of cities with coordinates
+    gljson = [];  //coordinates from google maps
+
     
 app.get('/wikititles', function(req, res){
 
   var url = 'https://github.com/FreeCodeCamp/FreeCodeCamp/wiki/LocalGroups-List';
-  wikisc.sc(url,wtjson);
-  if (wtjson.length > 0) {
-    res.json(wtjson);
-  }
+  console.log(wikisc.sc, wikisc.js_f);
+  wikisc.sc(url);
+  //wikisc.sc(url,wtjson);
+  //if (wtjson.length > 0) {
+  //  res.json(wtjson);
+  //}
 });
 
-app.get('/wikilist', function(req, res){
+app.get('/wikilists', function(req, res){
   var url = 'https://raw.githubusercontent.com/FreeCodeCamp/wiki/master/Campsites.json';
   var cb = function(a){
     if (a.length > 0) {
@@ -24,6 +28,16 @@ app.get('/wikilist', function(req, res){
     };
   }
   var p = wikiuc.uc(url, wljson, cb);
+})
+
+app.get('/googlelists', function(req, res){
+  var cb = function(a){
+    if (a.length > 0) {
+      res.send(a);
+    };
+  };
+  console.log(wljson);
+  var p = wikiuc.map(gljson,"Maracaibo","Venezuela",cb);
 })
 
 app.listen(8080);

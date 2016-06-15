@@ -16,9 +16,25 @@
 //http://stackoverflow.com/questions/11826384/calling-a-json-api-with-node-js
 //
 var request = require('request');
+var tokken = require('../config/config').GMapsAPITokken;
+var wikisc  = require('./wikiscrap_model');
+
+//console.log(tokken.slice(1,3));
 module.exports = {
-    map: function(ar, cb){
-        var urlmap = 'Google_Map_URL';
+    map: function(ar, city, country, cb){
+            city = 'Maracaibo';
+            country = 'Venezuela';
+            var urlmap = 'Google_Map_URL';
+            url = "https://maps.googleapis.com/maps/api/geocode/json?address="+city+",+"+country+"&key="+tokken;
+            request(url, function(err, response, html){
+                if(err){ console.log(err) };
+                if (html) {
+                    ar = [JSON.parse(html)];
+                    cb(ar);
+                    console.log(ar);
+                }
+                
+            })
         //loop through the array of cities
         //if it has coordinates, skip
         //otherwise, run a module-closure that update the data with a request call?

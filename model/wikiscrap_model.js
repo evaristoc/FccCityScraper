@@ -2,7 +2,10 @@ var request = require('request');
 var cheerio = require('cheerio');
 //https://www.sitepoint.com/understanding-module-exports-exports-node-js/
 module.exports = {
+    js_f : function(arr){if(arr.length>0){console.log("yes, wikiscrap")}},
     sc: function(url){
+            var js_F = this.js_f;
+            var js_data = [];
             request(url, function(err, response, html){
                 if(err){ console.log(err) };
             
@@ -34,8 +37,9 @@ module.exports = {
                   campsite.country = country;
                   campsite.facebook = $(this).attr('href').trim();
             
-                  js_f.push(campsite);  //inside cheerio...
+                  js_data.push(campsite);  //inside cheerio...
                 });
+                js_F(js_data);
             });        
         },
 }
