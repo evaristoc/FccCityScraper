@@ -10,7 +10,7 @@ To test locally:
 * once in folder, do `npm install`
 * after installation, do `npm start`
 * main page should be at your browser at localhost:8080
-* for the googlelists you would need to get a tokken from Google Maps API and save it as:
+* for the googlelists you need to get a tokken from Google Maps API and save it as:
  ```
     module.exports = {
     GMapsAPITokken : "YOURAPI",  
