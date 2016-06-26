@@ -16,7 +16,6 @@
 //http://stackoverflow.com/questions/11826384/calling-a-json-api-with-node-js
 //
 var request = require('request');
-var async = require('async');
 var tokken = require('../config/config').GMapsAPITokken;
 var wikisc  = require('./wikiscrap_model');
 var utf8_pac = require('utf8');
@@ -29,13 +28,15 @@ module.exports = {
     
     uc:
         // this method is for request function; cbuc is after getting the complete data
-        function(cbuc){
+        function(result1, cbuc){
             var url = 'https://raw.githubusercontent.com/FreeCodeCamp/wiki/master/Campsites.json';
+            console.log("Starting wiki json get ", url);
+
             request(url, function(err, response, html){
                 if(err){ console.log(err) };
                 if (html) {
-                    var dataarr = emptyarr = JSON.parse(html); //this is wljson...
-                    cbuc(dataarr);
+                    var dataarr = JSON.parse(html); //this is wljson...
+                    cbuc(result1, dataarr);
                     //console.log(ar);
                 }
             })
@@ -49,119 +50,99 @@ module.exports = {
         },
         
     compare:
-        function(cbcomp){
+        function(cbExit){
+            
             var o = this;
-            var cbsc = function(result){
-                //if (err){
-                //    console.log("Error scraper");
-                //}
-                //console.log(result);
-                return result;
-            };
             
-            var cbuc = function(result){ //HERE THERE IS AN ERROR!!! SO CHECK!!!
-                //if (err) {
-                //    console.log("Error wiki json");
-                //}
-                //console.log(result);
-                return result;
-            };
-            
-            console.log(async.series([o.sc(cbsc), o.uc(cbuc)], function(results){
-                //if (err) {
-                //    console.log("Error in async result");
-                //}
-                var scrap = results[0];
-                var wikijson = results[1];
-                var wjfb = [];
-                wikijson.forEach(function(elem){wjfb.push(elem.facebook)});
-                for (var i = 0; i < scrap.length; i++) {
-                    if(wjfb.indexOf(scrap[i].facebook) == -1){
-                        wikijson.push(scrap[i]);
-                    }
-                }
-                return [scrap.length, wikijson.length, wjfb.length];
-            }));
-        },
-        
-    goolist:
-        //this method contains a private function that runs based on a method, goocoor (cbgc)
-        //the same private function fills in an array of records with missing data
-        //all that is passed to uc, ie the request method
-        function(cbgc){ //cbgl is goocoor !!!
-            var thismod = this;
-            //var wljson = [];
-            var nocoord = [];
-            var cbcomp = function(dataarr){
-                if (dataarr.length > 0) {
-                    dataarr.forEach(function(elem){
-                        if (!elem.hasOwnProperty("coords")){
-                            nocoord.push([elem, dataarr.indexOf(elem)]); //add positional index as reference...
-                        }
-                    });
-                    //res.send(nocoord);
-                    //return nocoord;
-                    cbgc(nocoord, dataarr, thismod, console.log);
-              };
-            }
-            
-            thismod.compare(cbcomp);
-       
-    },
-    
+            var cbgc = function(nocoorarr, dataarr, o, cbExit){
 
-
-
-    goocoor:
-        //this method is only an iteration on nocoorarr to apply the gmap method over and run a final, exit cb
-        function(nocoorarr, dataarr, o, cbExit){
-
-
-        var count = 0;
-        var noc_arrsize = nocoorarr.length;
-        //this method is actually a private function of goocoor...
-        //it is the googlemap API run on ONE element
-        //it also contains the FINAL RESULT because it is where the whole chain detects end of processing
-            var gmap =  function(index, city, country, arrsize){
-                    //city = 'Maracaibo';
-                    //country = 'Venezuela';
-                    var urlmap = 'Google_Map_URL';
-                    url = "https://maps.googleapis.com/maps/api/geocode/json?address="+city+",+"+country+"&key="+tokken;
-                    url = utf8_pac.encode(url);
-                    request(url, function(err, response, html){
-                        if(err){ console.log(err) };
-                        if (html) {
-                            //finnocoorarr.push(JSON.parse(html));
-                            var r = JSON.parse(html);
-                            if (r.hasOwnProperty("results")) {
-                                if (r.results.length > 0) {
-                                    //console.log(r.results[0].geometry.location);
-                                    dataarr[index].coords = {lat:r.results[0].geometry.location.lat, lng:r.results[0].geometry.location.lng};
-                                    count++;
-                                    console.log(count);
+                var count = 0;
+                var noc_arrsize = nocoorarr.length;
+                //this method is actually a private function of goocoor...
+                //it is the googlemap API run on ONE element
+                //it also contains the FINAL RESULT because it is where the whole chain detects end of processing
+                var gmap =  function(index, city, country, arrsize){
+                        //city = 'Maracaibo';
+                        //country = 'Venezuela';
+                        var urlmap = 'Google_Map_URL';
+                        url = "https://maps.googleapis.com/maps/api/geocode/json?address="+city+",+"+country+"&key="+tokken;
+                        url = utf8_pac.encode(url);
+                        request(url, function(err, response, html){
+                            if(err){ console.log(err) };
+                            if (html) {
+                                //finnocoorarr.push(JSON.parse(html));
+                                var r = JSON.parse(html);
+                                if (r.hasOwnProperty("results")) {
+                                    if (r.results.length > 0) {
+                                        //console.log(r.results[0].geometry.location);
+                                        dataarr[index].coords = {lat:r.results[0].geometry.location.lat, lng:r.results[0].geometry.location.lng};
+                                        count++;
+                                        console.log(count);
+                                    }
+                                }
+                                if (count == noc_arrsize) { //count is NOT equal to noc_arrsize: the value was 320...
+                                    //cb(ar);
+                                    cbExit([{changes:count, nocoord:nocoorarr, wikij:dataarr}]);
                                 }
                             }
-                            if (count == 5) {
-                                //cb(ar);
-                                cbExit(count, 5);
-                            }
-                        }
-                        
-                    })
+                            
+                        })
                 };    
-
-
-            console.log(nocoorarr);
-            var thismod = this;
-            var finallist = [];
-            //var nocoord = thismod.goolist();
-            console.log(o);
-            //cbmp = console.log;
-            //noc_arrsize
-            for (var i = 0; i < 5; i++) {
-                setTimeout(gmap(nocoorarr[i][1], nocoorarr[i][0].city, nocoorarr[i][0].country),6000*i)
-            };
-    },
     
+    
+                //console.log(nocoorarr);
+                var thismod = this;
+                var finallist = [];
+                //var nocoord = thismod.goolist();
+                //console.log(o);
+                //cbmp = console.log;
+                //noc_arrsize
+                for (var i = 0; i < noc_arrsize; i++) {
+                    setTimeout(gmap(nocoorarr[i][1], nocoorarr[i][0].city, nocoorarr[i][0].country),6000*i)
+                };
+            };
+            
+            
+            var cbsc = function(result1){
+                if (result1) {
+                    o.uc(result1, cbuc);
+                }
+            };
+                        
+            var cbuc = function(result1, result2){ //HERE THERE IS AN ERROR!!! SO CHECK!!!
+                if (result2) {
+                    //console.log(result1.length, result2.length);
+                    var scrap = result1;
+                    var wikijson = result2;
+                    var wjfb = [];
+                    wikijson.forEach(function(elem){wjfb.push(elem.facebook)});
+                    for (var i = 0; i < scrap.length; i++) {
+                        if(wjfb.indexOf(scrap[i].facebook) == -1){
+                            wikijson.push(scrap[i]);
+                        }
+                    }
+                    console.log(wikijson.length, scrap.length, wjfb.length);
+                    var nocoord = [];
+                    var cbcomp = function(dataarr){
+                        if (dataarr.length > 0) {
+                            dataarr.forEach(function(elem){
+                                if (!elem.hasOwnProperty("coords")){
+                                    nocoord.push([elem, dataarr.indexOf(elem)]); //add positional index as reference...
+                                }
+                            });
+                            //res.send(nocoord);
+                            //return nocoord;
+                            cbgc(nocoord, dataarr, o, cbExit);
+                      };
+                    };
+                    cbcomp(wikijson);
+                    
+                }
+            };
+           
+            o.sc(cbsc)
+            
 
+        },
+        
 };

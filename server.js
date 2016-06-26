@@ -48,7 +48,8 @@ app.get('/googlelists', function(req, res){
   //var p = wikiuc.map(gljson,"Maracaibo","Venezuela",cb);
   //wikiuc.goolist(res);
   //wikiuc.goocoor();
-  wikiuc.goolist(wikiuc.goocoor);
+  //wikiuc.goolist(wikiuc.goocoor);
+  wikiuc.compare(cb);
 })
 
 app.listen(8080);

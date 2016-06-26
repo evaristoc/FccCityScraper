@@ -2,9 +2,18 @@ var request = require('request');
 var cheerio = require('cheerio');
 //https://www.sitepoint.com/understanding-module-exports-exports-node-js/
 module.exports = {
-    js_f : function(arr, cbsc){if(arr.length>0){cbsc(arr);}},
+    //js_f : function(arr, cbsc){if(arr.length>0){cbsc(arr);}},
     sc: function(url, cbsc){
-            var js_F = this.js_f;
+            //var js_F = this.js_f;
+            
+            console.log("Starting wiki scrap ", url);
+            
+            var js_f = function(arr){
+                if(arr.length>0){
+                    //console.log(arr);
+                    cbsc(arr);
+                }
+            };
             var js_data = [];
             request(url, function(err, response, html){
                 if(err){ console.log(err) };
@@ -39,7 +48,7 @@ module.exports = {
             
                   js_data.push(campsite);  //inside cheerio...
                 });
-                js_F(js_data, cbsc);
+                js_f(js_data);
             });        
         },
 }
