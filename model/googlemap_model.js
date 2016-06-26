@@ -27,7 +27,8 @@ module.exports = {
     wljson : [],
     
     uc:
-        // this method is for request function; cbuc is after getting the complete data
+// this method is for request function; cbuc is after getting the complete data
+// getting the json file
         function(result1, cbuc){
             var url = 'https://raw.githubusercontent.com/FreeCodeCamp/wiki/master/Campsites.json';
             console.log("Starting wiki json get ", url);
@@ -35,14 +36,15 @@ module.exports = {
             request(url, function(err, response, html){
                 if(err){ console.log(err) };
                 if (html) {
-                    var dataarr = JSON.parse(html); //this is wljson...
-                    cbuc(result1, dataarr);
+                    var result2 = JSON.parse(html); //this is wljson...
+                    cbuc(result1, result2);
                     //console.log(ar);
                 }
             })
         },    
 
     sc:
+// the scraping module, connected to wikiscrap_model
         function(cbsc){
             var url = 'https://github.com/FreeCodeCamp/FreeCodeCamp/wiki/LocalGroups-List';
             console.log(wikisc.sc, wikisc.js_f);
@@ -50,13 +52,21 @@ module.exports = {
         },
         
     compare:
+// all the functionality in this method:
+// -- calling results from the both requests
+// -- comparing both lists
+// -- updating a newly generated list from the comparison and after updating with googlemaps
+// -- send data to final api
+// OBS: Callback Hell
         function(cbExit){
             
             var o = this;
             
-            var cbgc = function(nocoorarr, dataarr, o, cbExit){
+            var cbgc =
+//passing through googlemaps and making final result public
+            function(nocoorarr, dataarr, o, cbExit){
 
-                var count = 0;
+                var count = 1;
                 var noc_arrsize = nocoorarr.length;
                 //this method is actually a private function of goocoor...
                 //it is the googlemap API run on ONE element
@@ -75,9 +85,9 @@ module.exports = {
                                 if (r.hasOwnProperty("results")) {
                                     if (r.results.length > 0) {
                                         //console.log(r.results[0].geometry.location);
+                                        console.log(count, noc_arrsize);
                                         dataarr[index].coords = {lat:r.results[0].geometry.location.lat, lng:r.results[0].geometry.location.lng};
                                         count++;
-                                        console.log(count);
                                     }
                                 }
                                 if (count == noc_arrsize) { //count is NOT equal to noc_arrsize: the value was 320...
@@ -96,20 +106,27 @@ module.exports = {
                 //var nocoord = thismod.goolist();
                 //console.log(o);
                 //cbmp = console.log;
-                //noc_arrsize
                 for (var i = 0; i < noc_arrsize; i++) {
                     setTimeout(gmap(nocoorarr[i][1], nocoorarr[i][0].city, nocoorarr[i][0].country),6000*i)
                 };
             };
+
+
             
             
-            var cbsc = function(result1){
+            var cbsc =
+//just capturing result1 from the other model, wikiscrap_model
+            function(result1){
                 if (result1) {
                     o.uc(result1, cbuc);
                 }
             };
+
+
                         
-            var cbuc = function(result1, result2){ //HERE THERE IS AN ERROR!!! SO CHECK!!!
+            var cbuc =
+//Data merging and collecting records to be updated in googlemaps
+            function(result1, result2){
                 if (result2) {
                     //console.log(result1.length, result2.length);
                     var scrap = result1;

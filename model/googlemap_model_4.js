@@ -29,7 +29,7 @@ module.exports = {
     
     uc:
         // this method is for request function; cbuc is after getting the complete data
-        function(result1, cbuc){
+        function(cbuc){
             var url = 'https://raw.githubusercontent.com/FreeCodeCamp/wiki/master/Campsites.json';
             console.log("Starting wiki json get ", url);
 
@@ -37,7 +37,7 @@ module.exports = {
                 if(err){ console.log(err) };
                 if (html) {
                     var dataarr = JSON.parse(html); //this is wljson...
-                    cbuc(result1, dataarr);
+                    cbuc(null, dataarr);
                     //console.log(ar);
                 }
             })
@@ -71,52 +71,52 @@ module.exports = {
             //    console.log(result.length);
             //    return result;
             //};
-
-            var cbsc = function(result1){
-                if (result1) {
-                    o.uc(result1, cbuc);
-                }
-            };
-                        
-            var cbuc = function(result1, result2){ //HERE THERE IS AN ERROR!!! SO CHECK!!!
-                if (result2) {
-                    console.log(result1.length, result2.length);
-                    var scrap = result1;
-                    var wikijson = result2;
-                    var wjfb = [];
-                    wikijson.forEach(function(elem){wjfb.push(elem.facebook)});
-                    for (var i = 0; i < scrap.length; i++) {
-                        if(wjfb.indexOf(scrap[i].facebook) == -1){
-                            wikijson.push(scrap[i]);
-                        }
-                    }
-                    console.log([scrap.length, wikijson.length, wjfb.length]);
-                    
-                }
-            };
-           
-            o.sc(cbsc)
-            
-            ////test
-            //async.parallel([
-            //    function(callback){
-            //        setTimeout(function(){
-            //            callback(null, 'one');
-            //        }, 200);
-            //    },
-            //    function(callback){
-            //        setTimeout(function(){
-            //            callback(null, 'two');
-            //        }, 100);
-            //    }
-            //],
-            //// optional callback
-            //function(err, results){
-            //    console.log(results);
-            //    // the results array will equal ['one','two'] even though
-            //    // the second function had a shorter timeout.
-            //});
-            
+            //
+            ////var cbsc = function(result1){
+            ////    if (result1) {
+            ////        o.uc(result1, cbuc);
+            ////    }
+            ////};
+            ////            
+            ////var cbuc = function(result1, result2){ //HERE THERE IS AN ERROR!!! SO CHECK!!!
+            ////    if (result2) {
+            ////        console.log(result1.length, result2.length);
+            ////        var scrap = result1;
+            ////        var wikijson = result2;
+            ////        var wjfb = [];
+            ////        wikijson.forEach(function(elem){wjfb.push(elem.facebook)});
+            ////        for (var i = 0; i < scrap.length; i++) {
+            ////            if(wjfb.indexOf(scrap[i].facebook) == -1){
+            ////                wikijson.push(scrap[i]);
+            ////            }
+            ////        }
+            ////        console.log([scrap.length, wikijson.length, wjfb.length]);
+            ////        
+            ////    }
+            ////};
+            ////
+            //o.sc(cbsc)
+            //
+            //////test
+            ////async.parallel([
+            ////    function(callback){
+            ////        setTimeout(function(){
+            ////            callback(null, 'one');
+            ////        }, 200);
+            ////    },
+            ////    function(callback){
+            ////        setTimeout(function(){
+            ////            callback(null, 'two');
+            ////        }, 100);
+            ////    }
+            ////],
+            ////// optional callback
+            ////function(err, results){
+            ////    console.log(results);
+            ////    // the results array will equal ['one','two'] even though
+            ////    // the second function had a shorter timeout.
+            ////});
+            //
             //async.parallel([o.sc(cbsc), o.uc(cbuc)], function(err, results){
             //    //if (err) {
             //    //    console.log("Error in async result");
@@ -134,6 +134,24 @@ module.exports = {
             //    //}
             //    //return [scrap.length, wikijson.length, wjfb.length];
             //});
+            
+            var aaa = [];   //needed an external value...
+
+            var callback = function(err, result){
+                //if (err){
+                //    console.log("Error scraper");
+                //}
+                console.log(result.length);
+                aaa.push(result);
+                if (aaa.length > 1) {
+                    console.log(aaa[0][0]); //the callback has to finish it ALL
+                    //return aaa;
+                }
+                //return result;
+            };
+            
+            async.series([o.sc(callback), o.uc(callback)], callback(err, result));
+            
         },
         
     goolist:
