@@ -16,7 +16,6 @@
 //http://stackoverflow.com/questions/11826384/calling-a-json-api-with-node-js
 //
 var request = require('request');
-var async = require('async');
 var tokken = require('../config/config').GMapsAPITokken;
 var wikisc  = require('./wikiscrap_model');
 var utf8_pac = require('utf8');
@@ -29,8 +28,7 @@ module.exports = {
     
     uc:
         // this method is for request function; cbuc is after getting the complete data
-        function(cbuc){
-            var url = 'https://raw.githubusercontent.com/FreeCodeCamp/wiki/master/Campsites.json';
+        function(url, emptyarr, cbuc){
             request(url, function(err, response, html){
                 if(err){ console.log(err) };
                 if (html) {
@@ -48,42 +46,6 @@ module.exports = {
             wikisc.sc(url, cbsc);    
         },
         
-    compare:
-        function(cbcomp){
-            var o = this;
-            var cbsc = function(result){
-                //if (err){
-                //    console.log("Error scraper");
-                //}
-                //console.log(result);
-                return result;
-            };
-            
-            var cbuc = function(result){ //HERE THERE IS AN ERROR!!! SO CHECK!!!
-                //if (err) {
-                //    console.log("Error wiki json");
-                //}
-                //console.log(result);
-                return result;
-            };
-            
-            console.log(async.series([o.sc(cbsc), o.uc(cbuc)], function(results){
-                //if (err) {
-                //    console.log("Error in async result");
-                //}
-                var scrap = results[0];
-                var wikijson = results[1];
-                var wjfb = [];
-                wikijson.forEach(function(elem){wjfb.push(elem.facebook)});
-                for (var i = 0; i < scrap.length; i++) {
-                    if(wjfb.indexOf(scrap[i].facebook) == -1){
-                        wikijson.push(scrap[i]);
-                    }
-                }
-                return [scrap.length, wikijson.length, wjfb.length];
-            }));
-        },
-        
     goolist:
         //this method contains a private function that runs based on a method, goocoor (cbgc)
         //the same private function fills in an array of records with missing data
@@ -92,7 +54,9 @@ module.exports = {
             var thismod = this;
             //var wljson = [];
             var nocoord = [];
-            var cbcomp = function(dataarr){
+            var url = 'https://raw.githubusercontent.com/FreeCodeCamp/wiki/master/Campsites.json';
+            
+            var cbuc = function(dataarr){
                 if (dataarr.length > 0) {
                     dataarr.forEach(function(elem){
                         if (!elem.hasOwnProperty("coords")){
@@ -105,7 +69,7 @@ module.exports = {
               };
             }
             
-            thismod.compare(cbcomp);
+            thismod.uc(url, thismod.wljson, cbuc);
        
     },
     
@@ -115,8 +79,7 @@ module.exports = {
     goocoor:
         //this method is only an iteration on nocoorarr to apply the gmap method over and run a final, exit cb
         function(nocoorarr, dataarr, o, cbExit){
-
-
+        
         var count = 0;
         var noc_arrsize = nocoorarr.length;
         //this method is actually a private function of goocoor...
@@ -163,5 +126,27 @@ module.exports = {
             };
     },
     
+
+
+    //map: function(ar, city, country, cb){
+    //        city = 'Maracaibo';
+    //        country = 'Venezuela';
+    //        var urlmap = 'Google_Map_URL';
+    //        url = "https://maps.googleapis.com/maps/api/geocode/json?address="+city+",+"+country+"&key="+tokken;
+    //        request(url, function(err, response, html){
+    //            if(err){ console.log(err) };
+    //            if (html) {
+    //                ar = [JSON.parse(html)];
+    //                cb(ar);
+    //                console.log(ar);
+    //            }
+    //            
+    //        })
+    //    //loop through the array of cities
+    //    //if it has coordinates, skip
+    //    //otherwise, run a module-closure that update the data with a request call?
+    //    //once the data is completed (hmmm.... hard to know...) then take the arr
+    //    //probably better with async?? the other control is just a counter or checker...
+    //},
 
 };

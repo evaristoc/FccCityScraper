@@ -2,7 +2,7 @@ var request = require('request');
 var cheerio = require('cheerio');
 //https://www.sitepoint.com/understanding-module-exports-exports-node-js/
 module.exports = {
-    js_f : function(arr, cbsc){if(arr.length>0){cbsc(arr);}},
+    js_f : function(arr, cbsc){if(arr.length>0){cb("yes, wikiscrap"); cbsc(arr);}},
     sc: function(url, cbsc){
             var js_F = this.js_f;
             var js_data = [];
@@ -39,7 +39,7 @@ module.exports = {
             
                   js_data.push(campsite);  //inside cheerio...
                 });
-                js_F(js_data, cbsc);
+                js_F(js_data, console.log);
             });        
         },
 }
