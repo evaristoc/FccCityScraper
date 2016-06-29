@@ -15,10 +15,22 @@
 //for getting the existing file
 //http://stackoverflow.com/questions/11826384/calling-a-json-api-with-node-js
 //
+//about fb access tokens (horrible to maintain)
+//http://stackoverflow.com/questions/7696372/facebook-page-access-tokens-do-these-expire
+//https://developers.facebook.com/docs/javascript/reference/FB.api
+//http://stackoverflow.com/questions/8713241/whats-the-facebooks-graph-api-call-limit
+//http://wearecoder.com/questions/2hnzb/facebook-graph-api-limit-doubt
+//
 var request = require('request');
-var tokken = require('../config/config').GMapsAPITokken;
+var gmtokken = require('../config/config').GMapsAPITokken;
+var fbtokken = require('../config/config').FBAPITokken;
 var wikisc  = require('./wikiscrap_model');
 var utf8_pac = require('utf8');
+var fbgraph = require('fbgraph');
+
+fbgraph.setAccessToken(fbtokken);
+
+
 
 //console.log(tokken.slice(1,3));
 module.exports = {
@@ -61,13 +73,87 @@ module.exports = {
         function(cbExit){
             
             var o = this;
+
+            var cbfb =
+//facebook data update
+            function(fresult){
+                if (!fresult) {
+                    console.log("No updated results");
+                };
+                var events = [];
+                counter = 1;
+                console.log("result ok in fb function", fresult.changes);
+                var arr = fresult.wikij;
+                //console.log(arr);
+                for(var k = 0; k < arr.length; k++) {
+                    //console.log(arr[k].facebook.split("/")[4]);
+                    (function(k){
+                        setTimeout(function(){
+                            var searchOptions = {
+                                q: arr[k].facebook.split("/")[4],
+                                type: "group",
+                            };
+                            console.log("searchOptions ", searchOptions);
+                            
+                            fbgraph.search(searchOptions, function(err, res){
+                                if (err) {
+                                    console.log("error finding ", searchOptions.q);
+                                    console.log(err);
+                                    counter++;
+                                    return;
+                                };
+                                if (res.data[0]) {
+                                    fbgraph.get("/"+res.data[0].id+"/members?summary=true&limit=1", function(err, resm){
+                                        if (err) {
+                                            console.log("err members ", searchOptions.q);
+                                            counter++;
+                                            return;
+                                        };
+                                        console.log(searchOptions.q, "has members ", resm.summary.total_count);
+                                        fresult.wikij[k].members = resm.summary.total_count;
+                                        counter++;
+                                    });
+                                    fbgraph.get("/"+res.data[0].id+"/events", function(err, rese){
+                                        if (err) {
+                                            console.log("err events ", searchOptions.q);
+                                            return;
+                                        };
+                                        if (rese) {
+                                            console.log(rese);
+                                        }
+                                    });                                
+                                }else{
+                                    if (searchOptions == undefined) {
+                                        console.log("no searchOption ", counter);
+                                        counter++;
+                                        return;
+                                    }
+                                    console.log(searchOptions," didn't got data");
+                                    counter++;
+                                }
+                            
+                            });
+                            console.log(counter, arr.length);
+                            if (counter >= fresult.wikij.length) {
+                                fresult.events = events;
+                                cbExit([fresult]);
+                            }                      
+                        }, //end callback setTimeout
+                        2000*k);
+                    })(k);
+               
+                };
+                
+            }; //end cbfb
+
             
             var cbgc =
 //passing through googlemaps and making final result public
-            function(nocoorarr, dataarr, o, cbExit){
+            function(nocoorarr, dataarr, o){
 
                 var count = 1;
                 var noc_arrsize = nocoorarr.length;
+                var noc_arrsize = 5;
                 //this method is actually a private function of goocoor...
                 //it is the googlemap API run on ONE element
                 //it also contains the FINAL RESULT because it is where the whole chain detects end of processing
@@ -75,7 +161,7 @@ module.exports = {
                         //city = 'Maracaibo';
                         //country = 'Venezuela';
                         var urlmap = 'Google_Map_URL';
-                        url = "https://maps.googleapis.com/maps/api/geocode/json?address="+city+",+"+country+"&key="+tokken;
+                        url = "https://maps.googleapis.com/maps/api/geocode/json?address="+city+",+"+country+"&key="+gmtokken;
                         url = utf8_pac.encode(url);
                         request(url, function(err, response, html){
                             if(err){ console.log(err) };
@@ -92,12 +178,12 @@ module.exports = {
                                 }
                                 if (count == noc_arrsize) { //count is NOT equal to noc_arrsize: the value was 320...
                                     //cb(ar);
-                                    cbExit([{changes:count, nocoord:nocoorarr, wikij:dataarr}]);
+                                    cbfb({changes:count, nocoord:nocoorarr, wikij:dataarr});
                                 }
                             }
                             
                         })
-                };    
+                };  
     
     
                 //console.log(nocoorarr);
@@ -109,10 +195,10 @@ module.exports = {
                 for (var i = 0; i < noc_arrsize; i++) {
                     setTimeout(gmap(nocoorarr[i][1], nocoorarr[i][0].city, nocoorarr[i][0].country),6000*i)
                 };
-            };
+            }; //end cbgc   
 
 
-            
+           
             
             var cbsc =
 //just capturing result1 from the other model, wikiscrap_model
@@ -120,10 +206,10 @@ module.exports = {
                 if (result1) {
                     o.uc(result1, cbuc);
                 }
-            };
+            }; //end cbsc
 
 
-                        
+                       
             var cbuc =
 //Data merging and collecting records to be updated in googlemaps
             function(result1, result2){
@@ -149,13 +235,13 @@ module.exports = {
                             });
                             //res.send(nocoord);
                             //return nocoord;
-                            cbgc(nocoord, dataarr, o, cbExit);
+                            cbgc(nocoord, dataarr, o);
                       };
                     };
                     cbcomp(wikijson);
                     
                 }
-            };
+            }; //end cbuc
            
             o.sc(cbsc)
             
