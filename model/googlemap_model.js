@@ -23,13 +23,19 @@
 //
 var request = require('request');
 var gmtokken = require('../config/config').GMapsAPITokken;
+var fbuser = require('../config/config').FBUSERTokken;
 var fbtokken = require('../config/config').FBAPITokken;
+var fbappid = require('../config/config').FBAPIId;
+var fbsecret = require('../config/config').FBAPISecret;
 var wikisc  = require('./wikiscrap_model');
 var utf8_pac = require('utf8');
 var fbgraph = require('fbgraph');
+var fs = require('fs');
+var jsonfile = require('jsonfile');
 
-fbgraph.setAccessToken(fbtokken);
-
+fbgraph.setAccessToken(fbuser);
+var path = './data.json';
+var writeStream = fs.createWriteStream(path, {flags: 'a'});
 
 
 //console.log(tokken.slice(1,3));
@@ -42,9 +48,11 @@ module.exports = {
 // this method is for request function; cbuc is after getting the complete data
 // getting the json file
         function(result1, cbuc){
-            var url = 'https://raw.githubusercontent.com/FreeCodeCamp/wiki/master/Campsites.json';
-            console.log("Starting wiki json get ", url);
-
+            //var url = 'https://raw.githubusercontent.com/FreeCodeCamp/wiki/master/Campsites.json';
+            var url =
+                //'https://gist.githubusercontent.com/evaristoc/abf2cc27fb29656f929a51f74c87d35b/raw/6ee77228634bbf2ee4ccf93c7c34e77fff2b34ee/wikij.json';
+                'https://gist.githubusercontent.com/evaristoc/744b9ca6314c09c197a3d82caecc5540/raw/7edca215af988f68664b32fe05f89beacb5a094a/wikij2.json';
+            
             request(url, function(err, response, html){
                 if(err){ console.log(err) };
                 if (html) {
@@ -70,7 +78,14 @@ module.exports = {
 // -- updating a newly generated list from the comparison and after updating with googlemaps
 // -- send data to final api
 // OBS: Callback Hell
-        function(cbExit){
+        function(){
+            
+            var cbExit = function(arr){
+                console.log(arr);
+                jsonfile.writeFile(path, arr, function (err) {
+                  console.error(err)
+                })
+            }
             
             var o = this;
 
@@ -81,69 +96,143 @@ module.exports = {
                     console.log("No updated results");
                 };
                 var events = [];
-                counter = 1;
+                var counter = 1;
+                var ct = 0;
                 console.log("result ok in fb function", fresult.changes);
-                var arr = fresult.wikij;
+                var arr = fresult.wikij.slice(0,700);
                 //console.log(arr);
-                for(var k = 0; k < arr.length; k++) {
+                var al = arr.length;
+                //var al = 750;
+                var jumped = -1;
+                function datecomparison(d1){
+                    var d2 = new Date();
+                    //return Math.round(Math.abs(d2.getTime()-d1.getTime())/(1000*60*60*24))-1;
+                    return Math.round(Math.abs(d2-d1)/(1000*60*60*24))-1;
+
+                }
+                
+                for(var k = 0; k < al; k++) {
+                    //ct = k;
                     //console.log(arr[k].facebook.split("/")[4]);
-                    (function(k){
-                        setTimeout(function(){
-                            var searchOptions = {
-                                q: arr[k].facebook.split("/")[4],
-                                type: "group",
-                            };
-                            console.log("searchOptions ", searchOptions);
-                            
-                            fbgraph.search(searchOptions, function(err, res){
-                                if (err) {
-                                    console.log("error finding ", searchOptions.q);
-                                    console.log(err);
-                                    counter++;
-                                    return;
+                    //first, check if there is a recent update...
+                    if (arr[k].hasOwnProperty("fbdetails")) {
+                        if(datecomparison(arr[k].fbdetails.checked) < 7){
+                            counter++;
+                            jumped = k; //control time: only update here
+                        };
+                    
+                    }else{
+                        var j = k - jumped + 1;
+                        (function(k, j){
+                            setTimeout(function(){
+                                var searchOptions = {
+                                    q: arr[k].facebook.split("/")[4],
+                                    type: "group",
                                 };
-                                if (res.data[0]) {
-                                    fbgraph.get("/"+res.data[0].id+"/members?summary=true&limit=1", function(err, resm){
+                                console.log("searchOptions ", searchOptions);
+                                
+                                //if it has fbdetails; if not, then update members and events
+                                if (arr[k].hasOwnProperty("fbdetails")) {
+                                    fbgraph.get("/"+arr[k].fbdetails.fb_id+"/members?summary=true&limit=1", function(err, resm){
                                         if (err) {
                                             console.log("err members ", searchOptions.q);
                                             counter++;
-                                            return;
+                                            //return;
                                         };
                                         console.log(searchOptions.q, "has members ", resm.summary.total_count);
                                         fresult.wikij[k].members = resm.summary.total_count;
                                         counter++;
                                     });
-                                    fbgraph.get("/"+res.data[0].id+"/events", function(err, rese){
+                                    fbgraph.get("/"+arr[k].fbdetails.fb_id+"/events", function(err, rese){
                                         if (err) {
                                             console.log("err events ", searchOptions.q);
                                             return;
                                         };
                                         if (rese) {
-                                            console.log(rese);
+                                            events.push([{facebookname:searchOptions.q, fb_id: res.data[0].id},rese.data]);
                                         }
-                                    });                                
+                                    });
+                                    fresult.wikij[k].fbdetails.checked = new Date();
+                                    fresult.wikij[k].fbdetails.checked = fresult.wikij[k].fbdetails.checked.getTime();
+
+                                //if on the other hand don't have fbdetails, create it and update all data
                                 }else{
-                                    if (searchOptions == undefined) {
-                                        console.log("no searchOption ", counter);
-                                        counter++;
-                                        return;
-                                    }
-                                    console.log(searchOptions," didn't got data");
-                                    counter++;
-                                }
-                            
-                            });
-                            console.log(counter, arr.length);
-                            if (counter >= fresult.wikij.length) {
-                                fresult.events = events;
-                                cbExit([fresult]);
-                            }                      
-                        }, //end callback setTimeout
-                        2000*k);
-                    })(k);
-               
+                                
+                                    fbgraph.search(searchOptions, function(err, res){
+                                        if (err) {
+                                            console.log("error finding ", searchOptions.q);
+                                            console.log(err);
+                                            counter++;
+                                            return;
+                                        };
+                                        if (res.data[0]) {
+                                            fresult.wikij[k].fbdetails = {};
+                                            fresult.wikij[k].fbdetails.fb_id = res.data[0].id;
+                                            fresult.wikij[k].fbdetails.checked = new Date();
+                                            fresult.wikij[k].fbdetails.checked = fresult.wikij[k].fbdetails.checked.getTime();
+                                            fbgraph.get("/"+res.data[0].id+"?fields=id,name,updated_time,owner", function(err,resf){
+                                                if (err) {
+                                                    consol.log("err fields ", searchOptions.q);
+                                                    return;
+                                                };
+                                                //OJO: TODO - if owner exists, do not update this...
+                                                fresult.wikij[k].fbdetails.fb_owner = resf.owner;
+                                                fresult.wikij[k].fbdetails.fb_lastmodf = resf.updated_time;
+                                            });
+                                            
+                                            fbgraph.get("/"+res.data[0].id+"/members?summary=true&limit=1", function(err, resm){
+                                                if (err) {
+                                                    console.log("err members ", searchOptions.q);
+                                                    counter++;
+                                                    //return;
+                                                };
+                                                console.log(searchOptions.q, "has members ", resm.summary.total_count);
+                                                fresult.wikij[k].members = resm.summary.total_count;
+                                                counter++;
+                                            });
+                                            fbgraph.get("/"+res.data[0].id+"/events", function(err, rese){
+                                                if (err) {
+                                                    console.log("err events ", searchOptions.q);
+                                                    return;
+                                                };
+                                                if (rese) {
+                                                    events.push([{facebookname:searchOptions.q, fb_id: res.data[0].id},rese.data]);
+                                                }
+                                            });                                
+                                        }else{
+                                            if (searchOptions == undefined) {
+                                                console.log("no searchOption ", counter);
+                                                counter++;
+                                                return;
+                                            }
+                                            console.log(searchOptions," didn't got data");
+                                            counter++;
+                                        };
+                                    });
+                                };
+                                console.log(counter, al, arr.length);
+                                //fresult.wikij[k].checked = 1;
+                                //fbgraph.extendAccessToken({
+                                //        "access_token":   fbtokken,
+                                //        "client_id":      fbappid,
+                                //        "client_secret":  fbsecret,
+                                //    },
+                                //    function (err, facebookRes) {
+                                //        console.log(facebookRes);
+                                //});
+                                //
+                                //if (counter >= al) {
+                                if (k == (al - 1)) {
+
+                                    fresult.events = events;
+                                    cbExit([fresult]);
+                                }                      
+                            }, //end callback setTimeout
+                            4000*j);
+                        })(k, j);
+           
+                    };
                 };
-                
             }; //end cbfb
 
             
@@ -153,7 +242,7 @@ module.exports = {
 
                 var count = 1;
                 var noc_arrsize = nocoorarr.length;
-                var noc_arrsize = 5;
+                //var noc_arrsize = 5;
                 //this method is actually a private function of goocoor...
                 //it is the googlemap API run on ONE element
                 //it also contains the FINAL RESULT because it is where the whole chain detects end of processing
@@ -193,7 +282,7 @@ module.exports = {
                 //console.log(o);
                 //cbmp = console.log;
                 for (var i = 0; i < noc_arrsize; i++) {
-                    setTimeout(gmap(nocoorarr[i][1], nocoorarr[i][0].city, nocoorarr[i][0].country),6000*i)
+                    (function(i){setTimeout(gmap(nocoorarr[i][1], nocoorarr[i][0].city, nocoorarr[i][0].country),1500*i)})(i);
                 };
             }; //end cbgc   
 

@@ -44,12 +44,16 @@ app.get('/googlelists', function(req, res){
       res.send(a);
     };
   };
+  
+  
+
   //console.log(wljson);
   //var p = wikiuc.map(gljson,"Maracaibo","Venezuela",cb);
   //wikiuc.goolist(res);
   //wikiuc.goocoor();
   //wikiuc.goolist(wikiuc.goocoor);
-  wikiuc.compare(cb);
+  //wikiuc.compare(cb);
+  wikiuc.compare();
 })
 
 app.listen(8080);
